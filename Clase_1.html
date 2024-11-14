@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Trabajo presetnado por:
+ Jarol Andres Hernandez Rincon
+ Codigo: 20162005862-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Detection</title>
+
+
+
+
+  <!-- Import MediaPipe and Drawing Utilities -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    video, canvas { position: absolute; transform: rotateY(180deg); } /* Mirror video and canvas */
+  </style>
+</head>
+<body>
+
+  <!-- Video Element with Pre-uploaded Video -->
+  <video id="video" autoplay playsinline loop>
+    <source src="mano_bien_4.mp4" type="video/mp4">  <!-- Reemplaza con tu video -->
+    Tu navegador no soporta el formato de video.
+  </video>
+
+  <canvas id="output_canvas"></canvas>
+
+  <script type="module">
+    import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+    let handLandmarker;
+    let runningMode = "VIDEO";
+    let lastVideoTime = -1;
+
+    const initializeHandLandmarker = async () => {
+      const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+      handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: runningMode,
+        numHands: 2
+      });
+    };
+    initializeHandLandmarker(); // Initialize landmarker
+
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("output_canvas");
+    const canvasCtx = canvas.getContext("2d");
+
+    // Función para calcular el coseno del ángulo entre dos vectores
+    function calculateCosine(vec1, vec2) {
+      const dotProduct = vec1.x * vec2.x + vec1.y * vec2.y;
+      const magnitude1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
+      const magnitude2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
+      return dotProduct / (magnitude1 * magnitude2);
+    }
+
+    // Función para dibujar un vector (línea entre dos puntos)
+    function drawVector(ctx, start, end, color) {
+      ctx.beginPath();
+      ctx.moveTo(start.x * canvas.width, start.y * canvas.height);
+      ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Detectar los puntos clave de la mano en el video
+    async function predictVideo() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      if (handLandmarker && video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+
+        // Detectar los puntos clave de la mano
+        const results = await handLandmarker.detectForVideo(video, performance.now());
+
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (results.landmarks) {
+          for (const landmarks of results.landmarks) {
+            // Obtener las coordenadas de las falanges de los dedos (sin el pulgar)
+            const indexBase = landmarks[6];  // Base del índice
+            const indexTip = landmarks[8];   // Punta del índice
+            const middleBase = landmarks[10];  // Base del medio
+            const middleTip = landmarks[12];   // Punta del medio
+            const ringBase = landmarks[14];  // Base del anular
+            const ringTip = landmarks[16];   // Punta del anular
+            const pinkyBase = landmarks[18];  // Base del meñique
+            const pinkyTip = landmarks[20];   // Punta del meñique
+
+            // Crear los vectores de los dedos (sin el pulgar)
+            const indexVector = { x: indexTip.x - indexBase.x, y: indexTip.y - indexBase.y };
+            const middleVector = { x: middleTip.x - middleBase.x, y: middleTip.y - middleBase.y };
+            const ringVector = { x: ringTip.x - ringBase.x, y: ringTip.y - ringBase.y };
+            const pinkyVector = { x: pinkyTip.x - pinkyBase.x, y: pinkyTip.y - pinkyBase.y };
+
+            // Dibujar los vectores de las falanges para todos los dedos
+            drawVector(canvasCtx, indexBase, indexTip, "green");  // Dedo índice
+            drawVector(canvasCtx, middleBase, middleTip, "blue");  // Dedo medio
+            drawVector(canvasCtx, ringBase, ringTip, "purple");  // Dedo anular
+            drawVector(canvasCtx, pinkyBase, pinkyTip, "orange");  // Dedo meñique
+
+            // Calcular el coseno entre el vector del índice y los vectores de los demás dedos
+            const cosineIndexMiddle = calculateCosine(indexVector, middleVector);
+            const cosineIndexRing = calculateCosine(indexVector, ringVector);
+            const cosineIndexPinky = calculateCosine(indexVector, pinkyVector);
+
+            // Verificar si el coseno entre el índice y cualquiera de los otros dedos
+            if (Math.abs(cosineIndexMiddle + 1) < 0.1 || Math.abs(cosineIndexRing + 1) < 0.1 || Math.abs(cosineIndexPinky + 1) < 0.1) {
+              // Mostrar el círculo amarillo solo si los dedos están alineados en direcciones opuestas
+              const x = indexTip.x * canvas.width; // Coordenada X de la punta del dedo índice
+              const y = indexTip.y * canvas.height; // Coordenada Y de la punta del dedo índice
+
+              // Círculo amarillo en la punta del dedo indice
+              canvasCtx.beginPath();
+              canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);  // Círculo amarillo en la punta del índice
+              canvasCtx.lineWidth = 2;
+              canvasCtx.strokeStyle = "yellow";
+              canvasCtx.fillStyle = "transparent";
+              canvasCtx.fill();
+              canvasCtx.stroke();
+            }
+          }
+        }
+      }
+
+      // Llamar nuevamente a la función para el siguiente fotograma
+      requestAnimationFrame(predictVideo);
+    }
+
+    video.addEventListener("loadeddata", predictVideo);
+
+  </script>
+
+</body>
+</html>
