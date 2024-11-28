@@ -26,7 +26,12 @@ El modelo LeNet, aplicado al conjunto de datos MNIST en el código, alcanza una 
 ##### 6. Características del Conjunto de Datos MNIST
 - Aunque MNIST es un conjunto de datos sencillo, su simplicidad podría ser otra razón del rendimiento limitado. Modelos más complejos podrían ser necesarios para mejorar más allá del 90% en tareas más desafiantes.
 
----
-
 Estas limitaciones sugieren que el modelo LeNet, con su arquitectura y configuraciones actuales, no está optimizado para superar la barrera del 90% de precisión sin realizar ajustes significativos.
 
+### Posibles cambios que ayuden a mejerar el accuracy.
+
+#### Cambiar la función de activación
+
+Una primera modificación es realizar el cambio de la función de activación, la cual en estos momentos es la función de activación "tanh", esta se cambiara por la funcion de activación "relu", de tla forma que el texto modificado nos queda de la siguiente manera.
+
+![Cambio de la función de activación](imagenes/)
