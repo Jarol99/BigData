@@ -34,4 +34,4 @@ Estas limitaciones sugieren que el modelo LeNet, con su arquitectura y configura
 
 Una primera modificación es realizar el cambio de la función de activación, la cual en estos momentos es la función de activación "tanh", esta se cambiara por la funcion de activación "relu", de tla forma que el texto modificado nos queda de la siguiente manera.
 
-![Cambio de la función de activación](imagenes/relu.png)
+![Cambio de la función de activación](imagenes/relu.jpg)
