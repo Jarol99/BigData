@@ -35,6 +35,7 @@ Estas limitaciones sugieren que el modelo LeNet, con su arquitectura y configura
 Una primera modificación es realizar el cambio de la función de activación, la cual en estos momentos es la función de activación "tanh", esta se cambiara por la funcion de activación "relu", de tla forma que el texto modificado nos queda de la siguiente manera.
 
 ![Cambio de la función de activación](imagenes/relu.jpg)
+
 Pero al realizar este cambio no se logro que el modelo superara el 90% de accuracy, de tal forma que se seguira realizando diferentes modificaciones al codigo, como lo es agregar mas epocas, aumentando el número de filtros, etc.
 
 
